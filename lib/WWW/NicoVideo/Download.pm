@@ -2,7 +2,7 @@ package WWW::NicoVideo::Download;
 
 use strict;
 use 5.8.1;
-our $VERSION = '0.02';
+our $VERSION = '0.01';
 
 use Carp;
 use LWP::UserAgent;
@@ -39,14 +39,14 @@ sub prepare_download {
         $self->login($video_id);
     }
 
+
     $res = $ua->get("http://www.nicovideo.jp/api/getflv?v=$video_id");
     if ($res->is_error) {
         croak "getflv API error: ", $res->status_line;
     }
-
     my $params = CGI::Simple->new($res->content);
     my $url = $params->param('url')
-        or croak "URL not found in getflv response";
+        or croak "URL not found in getflv response\n $res->content $video_id";
 
     # Not sure why, but you need to get the page again
     $ua->get("http://www.nicovideo.jp/watch/$video_id");
@@ -56,7 +56,9 @@ sub prepare_download {
 
 sub is_logged_out {
     my($self, $res) = @_;
-    $res->content =~ /id="login_bar"/;
+    #If this changes, this doesn't work.  We should think of another 
+    #method to determine if they are logged in or not.
+    $res->content =~ /class="head_btn_login"/;
 }
 
 sub login {
@@ -67,7 +69,6 @@ sub login {
         mail     => $self->email,
         password => $self->password,
     });
-
     if ($res->is_error) {
         croak "Login failed: " . $res->status_line;
     } elsif ( $self->is_logged_out($res) ) {
@@ -94,7 +95,7 @@ WWW::NicoVideo::Download - Download FLV/MP4/SWF files from nicovideo.jp
 
   my $client = WWW::NicoVideo::Download->new(
       email => 'your-email@example.com',
-      password => 'PASSWORD',
+      password => 'PASSSWORD',
   );
 
   $client->download("smNNNNNN", \&callback);
